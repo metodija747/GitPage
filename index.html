@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,6 +8,714 @@
 <body>
   <div id="root"></div>
   <script src="https://rag-assistant-content.s3.eu-west-2.amazonaws.com/builds/main.js"></script>
-  
+</body>
+</html>
+ -->
+
+ <!DOCTYPE html>
+<html lang="mk">
+<head>
+  <meta charset="UTF-8">
+  <!-- Ensure mobile responsiveness -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B1/B2 Flashcard Game – Мени, Нива, Глас и Мулти-Избор</title>
+  <style>
+    /* Reset & Basic Styling */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #74ABE2, #5563DE);
+      color: #333;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    h1, h2, h3 { margin-bottom: 10px; }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      background: #5563DE;
+      color: #fff;
+      font-size: 16px;
+      transition: background 0.3s;
+      margin: 5px;
+    }
+    button:hover { background: #3f48b5; }
+    select, input[type="text"] {
+      font-size: 16px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin: 5px 0;
+      width: 100%;
+    }
+    /* Container & Screen Layout */
+    #main-container {
+      background: #fff;
+      width: 700px;
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+    .screen {
+      padding: 20px;
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* МЕНИ Screen (Fixed: Македонски → Германски) */
+    #menu-screen { text-align: center; }
+    /* Level Selection */
+    #level-selection { margin: 20px 0; }
+    /* Level Preview */
+    #level-preview { margin-top: 20px; }
+    #level-words-list {
+      text-align: left; margin: 10px 0; max-height: 300px;
+      overflow-y: auto; border: 1px solid #ccc; border-radius: 5px;
+      padding: 10px; background: #f9f9f9;
+    }
+    #level-words-list table { width: 100%; border-collapse: collapse; }
+    #level-words-list th, #level-words-list td {
+      padding: 5px; border-bottom: 1px solid #ddd; text-align: left;
+    }
+    /* Quiz Screen */
+    #quiz-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; }
+    #quiz-progress { font-weight: bold; }
+    #word-progress { font-size: 14px; color: #555; }
+    #question-prompt {
+      margin-bottom: 15px; font-size: 24px; font-weight: bold; text-align: center;
+    }
+    /* Options container */
+    #options-container { margin-bottom: 15px; }
+    .option-item {
+      margin: 8px 0; padding: 8px; border: 1px solid #ccc; border-radius: 5px;
+      cursor: pointer; transition: background 0.3s;
+    }
+    .option-item:hover { background: #f0f0f0; }
+    .option-item input { margin-right: 10px; }
+    /* Color coding for nouns (if option is singular) */
+    .masculine { background-color: #add8e6; }
+    .feminine  { background-color: #ffb6c1; }
+    .neuter    { background-color: #d3d3d3; }
+    /* Quiz Feedback */
+    #quiz-feedback { margin-bottom: 15px; font-size: 18px; font-weight: bold; text-align: center; }
+    /* Typing Screen */
+    #typing-screen h2 { margin-bottom: 20px; text-align: center; }
+    #typing-question { font-size: 24px; margin-bottom: 15px; text-align: center; }
+    #typing-feedback { margin: 15px 0; font-size: 18px; font-weight: bold; text-align: center; }
+    /* Controls: Arrange buttons in 2 rows */
+    .controls {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 15px;
+    }
+    .controls button { flex: 1 1 48%; }
+    /* Instructions */
+    #instructions { font-size: 14px; margin-top: 10px; color: #555; text-align: center; }
+    /* Mobile-Friendly Adjustments */
+    @media (max-width: 600px) {
+      #main-container { width: 100%; border-radius: 0; box-shadow: none; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+      #word-progress { font-size: 12px; }
+      .controls button { font-size: 14px; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="main-container">
+    <!-- МЕНИ Screen -->
+    <div id="menu-screen" class="screen active">
+      <h1>Мени</h1>
+      <p>Режим: Македонски → Германски</p>
+      <div id="level-selection">
+        <h2>Избери ниво (категорија)</h2>
+        <select id="level-select">
+          <option value="1">Ниво 1: Alltag & Kommunikation (Секојдневие и комуникација)</option>
+          <option value="2">Ниво 2: Arbeit & Beruf (Работа и професија)</option>
+          <option value="3">Ниво 3: Wohnen & Umgebung (Станување и околина)</option>
+          <option value="4">Ниво 4: Essen & Trinken (Храна и пијалаци)</option>
+          <option value="5">Ниво 5: Reisen & Verkehr (Патувања и сообраќај)</option>
+          <option value="6">Ниво 6: Einkaufen & Dienstleistungen (Купување и услуги)</option>
+          <option value="7">Ниво 7: Gesundheit & Körper (Здравје и тело)</option>
+          <option value="8">Ниво 8: Freizeit & Unterhaltung (Слободно време и забава)</option>
+          <option value="9">Ниво 9: Familie & Beziehungen (Семејство и односи)</option>
+          <option value="10">Ниво 10: Zahlen, Zeit & Wetter (Броеви, време и временски услови)</option>
+        </select>
+        
+        <div class="controls">
+          <button id="preview-level-btn">Преглед</button>
+        </div>
+      </div>
+      <div id="instructions">
+        Пречници: <strong>Enter</strong> = Акција, <strong>→</strong> = Следно, <strong>A</strong> = Изговори, <strong>R</strong> = Гласов внес, <strong>Esc</strong> = Мени<br>
+        (Вкупен прогрес: X од Y значи X освоени зборови од вкупно Y.)
+      </div>
+    </div>
+
+    <!-- Преглед на ниво Screen -->
+    <div id="level-preview" class="screen">
+      <h2>Преглед на ниво</h2>
+      <div id="level-words-list"></div>
+      <div class="controls">
+        <button id="start-level-btn">Старт</button>
+        <button id="back-to-menu-btn">Назад</button>
+      </div>
+    </div>
+
+    <!-- QUIZ Screen (Мулти–Избор) -->
+    <div id="quiz-screen" class="screen">
+      <div id="quiz-header">
+        <div id="quiz-progress">Вкупен прогрес: </div>
+        <div id="word-progress"></div>
+      </div>
+      <div id="question-prompt"></div>
+      <div id="options-container"></div>
+      <div id="quiz-feedback"></div>
+      <div class="controls">
+        <!-- Single action button toggling between "Провери" and "Следно" -->
+        <button id="quiz-action-btn">Провери</button>
+        <button id="record-btn">Внес</button>
+        <button id="audio-btn">Изговори</button>
+      </div>
+      <div class="controls">
+        <button id="exit-quiz-btn">Мени</button>
+      </div>
+    </div>
+
+    <!-- Текстуална рунда Screen -->
+    <div id="typing-screen" class="screen">
+      <h2>Текстуална рунда</h2>
+      <div id="typing-question"></div>
+      <input type="text" id="typing-input" placeholder="Внеси одговор">
+      <div id="typing-feedback"></div>
+      <div class="controls">
+        <button id="typing-action-btn">Провери</button>
+      </div>
+      <div class="controls">
+        <button id="finish-level-btn" class="hidden">Заврши</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**************** Vocabulary Data ****************/
+    /* За секој збор:
+         • level: ниво (1–10)
+         • category: категорија
+         • type: "noun" или "adjective"
+         • german: германски збор (единствен број)
+         • macedonian: македонски превод (единствен број, во ћирилица)
+         • pluralGerman: германски збор во множествен број
+         • pluralMacedonian: македонски збор во множествен број (ћирилица)
+    */
+    const vocabulary = [
+  // Level 1: Alltag & Kommunikation (Everyday Life & Communication)
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Tag", macedonian: "ден", pluralGerman: "die Tage", pluralMacedonian: "дени" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Uhr", macedonian: "часовник", pluralGerman: "die Uhren", pluralMacedonian: "часовници" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Gespräch", macedonian: "разговор", pluralGerman: "die Gespräche", pluralMacedonian: "разговори" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Wort", macedonian: "збор", pluralGerman: "die Wörter", pluralMacedonian: "зборови" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Frage", macedonian: "прашање", pluralGerman: "die Fragen", pluralMacedonian: "прашања" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Antwort", macedonian: "одговор", pluralGerman: "die Antworten", pluralMacedonian: "одговори" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Brief", macedonian: "писмо", pluralGerman: "die Briefe", pluralMacedonian: "писма" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Telefon", macedonian: "телефон", pluralGerman: "die Telefone", pluralMacedonian: "телефони" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Gesprächspartner", macedonian: "собеседник", pluralGerman: "die Gesprächspartner", pluralMacedonian: "собеседници" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Nachricht", macedonian: "вест", pluralGerman: "die Nachrichten", pluralMacedonian: "вести" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Stimme", macedonian: "глас", pluralGerman: "die Stimmen", pluralMacedonian: "гласа" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Satz", macedonian: "реченица", pluralGerman: "die Sätze", pluralMacedonian: "реченици" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Buch", macedonian: "книга", pluralGerman: "die Bücher", pluralMacedonian: "книги" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Stift", macedonian: "олова", pluralGerman: "die Stifte", pluralMacedonian: "олови" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Papier", macedonian: "хартия", pluralGerman: "die Papiere", pluralMacedonian: "хартии" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Sprache", macedonian: "јазик", pluralGerman: "die Sprachen", pluralMacedonian: "јазици" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "das Wortspiel", macedonian: "зборна игра", pluralGerman: "die Wortspiele", pluralMacedonian: "зборни игри" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Dialog", macedonian: "дијалог", pluralGerman: "die Dialoge", pluralMacedonian: "дијалози" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "die Kommunikation", macedonian: "комуникација", pluralGerman: "die Kommunikationen", pluralMacedonian: "комуникации" },
+  { level: 1, category: "Alltag & Kommunikation", type: "noun", german: "der Ausdruck", macedonian: "израз", pluralGerman: "die Ausdrücke", pluralMacedonian: "изрази" },
+
+  // Level 2: Arbeit & Beruf (Work & Profession)
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Chef", macedonian: "шеф", pluralGerman: "die Chefs", pluralMacedonian: "шефови" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Stelle", macedonian: "работно место", pluralGerman: "die Stellen", pluralMacedonian: "работни места" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "das Gehalt", macedonian: "плата", pluralGerman: "die Gehälter", pluralMacedonian: "плати" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Vertrag", macedonian: "договор", pluralGerman: "die Verträge", pluralMacedonian: "договори" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Bewerbung", macedonian: "пријава", pluralGerman: "die Bewerbungen", pluralMacedonian: "пријави" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "das Büro", macedonian: "канцеларија", pluralGerman: "die Büros", pluralMacedonian: "канцеларији" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Besprechung", macedonian: "состанок", pluralGerman: "die Besprechungen", pluralMacedonian: "состаноци" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Kollege", macedonian: "колега", pluralGerman: "die Kollegen", pluralMacedonian: "колеги" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Abteilung", macedonian: "оддел", pluralGerman: "die Abteilungen", pluralMacedonian: "оддели" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "das Vorstellungsgespräch", macedonian: "интервју", pluralGerman: "die Vorstellungsgespräche", pluralMacedonian: "интервјута" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Lebenslauf", macedonian: "животопис", pluralGerman: "die Lebensläufe", pluralMacedonian: "животописи" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Beförderung", macedonian: "повишување", pluralGerman: "die Beförderungen", pluralMacedonian: "повишувања" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Arbeitszeit", macedonian: "работно време", pluralGerman: "die Arbeitszeiten", pluralMacedonian: "работни времиња" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "das Praktikum", macedonian: "стаж", pluralGerman: "die Praktika", pluralMacedonian: "стажи" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Anstellung", macedonian: "запошлување", pluralGerman: "die Anstellungen", pluralMacedonian: "запошлувања" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Arbeitsplatz", macedonian: "работно место", pluralGerman: "die Arbeitsplätze", pluralMacedonian: "работни места" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Bonus", macedonian: "бонус", pluralGerman: "die Boni", pluralMacedonian: "бонуси" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "die Weiterbildung", macedonian: "дополнително образование", pluralGerman: "die Weiterbildungen", pluralMacedonian: "дополнителни образования" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "der Vertragspartner", macedonian: "партнер во договор", pluralGerman: "die Vertragspartner", pluralMacedonian: "партнери" },
+  { level: 2, category: "Arbeit & Beruf", type: "noun", german: "das Projekt", macedonian: "проект", pluralGerman: "die Projekte", pluralMacedonian: "проекти" },
+
+  // Level 3: Wohnen & Umgebung (Housing & Surroundings)
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Haus", macedonian: "куќа", pluralGerman: "die Häuser", pluralMacedonian: "куќи" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Wohnung", macedonian: "стан", pluralGerman: "die Wohnungen", pluralMacedonian: "станови" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "der Garten", macedonian: "градина", pluralGerman: "die Gärten", pluralMacedonian: "градини" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Nachbarschaft", macedonian: "соседство", pluralGerman: "die Nachbarschaften", pluralMacedonian: "соседства" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Zimmer", macedonian: "соба", pluralGerman: "die Zimmer", pluralMacedonian: "соби" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "der Balkon", macedonian: "балкон", pluralGerman: "die Balkone", pluralMacedonian: "балкони" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Miete", macedonian: "наем", pluralGerman: "die Mieten", pluralMacedonian: "наеми" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Sofa", macedonian: "софа", pluralGerman: "die Sofas", pluralMacedonian: "софи" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "der Flur", macedonian: "ходник", pluralGerman: "die Flure", pluralMacedonian: "ходници" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Einrichtung", macedonian: "опрема", pluralGerman: "die Einrichtungen", pluralMacedonian: "опрема" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Terrasse", macedonian: "тераса", pluralGerman: "die Terrassen", pluralMacedonian: "тераси" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Mehrfamilienhaus", macedonian: "многосемејна куќа", pluralGerman: "die Mehrfamilienhäuser", pluralMacedonian: "многосемејни куќи" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "der Keller", macedonian: "подрум", pluralGerman: "die Keller", pluralMacedonian: "подруми" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Treppenhaus", macedonian: "стапала", pluralGerman: "die Treppenhäuser", pluralMacedonian: "стапали" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Garage", macedonian: "гаража", pluralGerman: "die Garagen", pluralMacedonian: "гаражи" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Fassade", macedonian: "фасада", pluralGerman: "die Fassaden", pluralMacedonian: "фасади" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Fundament", macedonian: "основа", pluralGerman: "die Fundamente", pluralMacedonian: "основи" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Renovierung", macedonian: "реновирање", pluralGerman: "die Renovierungen", pluralMacedonian: "реновирања" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "die Grundsteuer", macedonian: "земјен данок" },
+  { level: 3, category: "Wohnen & Umgebung", type: "noun", german: "das Wohngebiet", macedonian: "жилиштен район", pluralGerman: "die Wohngebiete", pluralMacedonian: "жилишни райони" },
+
+  // Level 4: Essen & Trinken (Food & Drinks)
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "das Brot", macedonian: "леб", pluralGerman: "die Brote", pluralMacedonian: "лебови" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "die Milch", macedonian: "млеко", pluralGerman: "die Milche", pluralMacedonian: "млека" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Kaffee", macedonian: "кафе", pluralGerman: "die Kaffees", pluralMacedonian: "кафеи" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Tee", macedonian: "чај", pluralGerman: "die Tees", pluralMacedonian: "чаеви" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "das Wasser", macedonian: "вода", pluralGerman: "das Wasser", pluralMacedonian: "вода" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Saft", macedonian: "сок", pluralGerman: "die Säfte", pluralMacedonian: "сокови" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Apfel", macedonian: "јаболко", pluralGerman: "die Äpfel", pluralMacedonian: "јаболка" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "die Banane", macedonian: "банана", pluralGerman: "die Bananen", pluralMacedonian: "банани" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "die Orange", macedonian: "портокал", pluralGerman: "die Orangen", pluralMacedonian: "портокали" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "die Kartoffel", macedonian: "компир", pluralGerman: "die Kartoffeln", pluralMacedonian: "компири" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "das Gemüse", macedonian: "зеленчук", pluralGerman: "das Gemüse", pluralMacedonian: "зеленчуци" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Salat", macedonian: "салата", pluralGerman: "die Salate", pluralMacedonian: "салати" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Fisch", macedonian: "риба", pluralGerman: "die Fische", pluralMacedonian: "риби" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "das Ei", macedonian: "јајце", pluralGerman: "die Eier", pluralMacedonian: "јајца" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Käse", macedonian: "сирење", pluralGerman: "der Käse", pluralMacedonian: "сирења" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Joghurt", macedonian: "јогурт", pluralGerman: "die Joghurts", pluralMacedonian: "јогурти" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "die Suppe", macedonian: "супа", pluralGerman: "die Suppen", pluralMacedonian: "супи" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "der Kuchen", macedonian: "торта", pluralGerman: "die Kuchen", pluralMacedonian: "торти" },
+  { level: 4, category: "Essen & Trinken", type: "noun", german: "das Getränk", macedonian: "пијало", pluralGerman: "die Getränke", pluralMacedonian: "пијала" },
+
+  // Level 5: Reisen & Verkehr (Travel & Transportation)
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Zug", macedonian: "воз", pluralGerman: "die Züge", pluralMacedonian: "возови" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "das Flugzeug", macedonian: "авион", pluralGerman: "die Flugzeuge", pluralMacedonian: "авиони" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Fahrt", macedonian: "патување", pluralGerman: "die Fahrten", pluralMacedonian: "патувања" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Bahnhof", macedonian: "станица", pluralGerman: "die Bahnhöfe", pluralMacedonian: "станици" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Reise", macedonian: "патување", pluralGerman: "die Reisen", pluralMacedonian: "патувања" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "das Ticket", macedonian: "билет", pluralGerman: "die Tickets", pluralMacedonian: "билети" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Flughafen", macedonian: "аеродром", pluralGerman: "die Flughäfen", pluralMacedonian: "аеродроми" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Fahrtkosten", macedonian: "трошоци за патување", pluralGerman: "die Fahrtkosten", pluralMacedonian: "трошоци за патување" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "das Gepäck", macedonian: "багаж", pluralGerman: "das Gepäck", pluralMacedonian: "багаж" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Verkehr", macedonian: "сообраќај", pluralGerman: "die Verkehre", pluralMacedonian: "сообраќаји" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "das Reiseziel", macedonian: "дестинација", pluralGerman: "die Reiseziele", pluralMacedonian: "дестинации" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Unterkunft", macedonian: "сместување", pluralGerman: "die Unterkünfte", pluralMacedonian: "сместувања" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Pass", macedonian: "пасош", pluralGerman: "die Pässe", pluralMacedonian: "пасоши" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "das Visum", macedonian: "виза", pluralGerman: "die Visa", pluralMacedonian: "визи" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Route", macedonian: "рута", pluralGerman: "die Routen", pluralMacedonian: "рути" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Abfahrt", macedonian: "отпрат", pluralGerman: "die Abfahrten", pluralMacedonian: "отпрати" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Ankunft", macedonian: "доласок", pluralGerman: "die Ankünfte", pluralMacedonian: "доласоци" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "der Fahrkartenautomat", macedonian: "автомат за билети", pluralGerman: "die Fahrkartenautomaten", pluralMacedonian: "автомати за билети" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Verspätung", macedonian: "каснење", pluralGerman: "die Verspätungen", pluralMacedonian: "каснења" },
+  { level: 5, category: "Reisen & Verkehr", type: "noun", german: "die Reiseroute", macedonian: "пат", pluralGerman: "die Reiserouten", pluralMacedonian: "патеви" },
+
+  // Level 6: Einkaufen & Dienstleistungen (Shopping & Services)
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "das Geschäft", macedonian: "продавница", pluralGerman: "die Geschäfte", pluralMacedonian: "продавници" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Supermarkt", macedonian: "супермаркет", pluralGerman: "die Supermärkte", pluralMacedonian: "супермаркети" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Preis", macedonian: "цена", pluralGerman: "die Preise", pluralMacedonian: "цени" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Verkäufer", macedonian: "продавач", pluralGerman: "die Verkäufer", pluralMacedonian: "продавачи" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Kunde", macedonian: "купувач", pluralGerman: "die Kunden", pluralMacedonian: "купувачи" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Einkauf", macedonian: "купување", pluralGerman: "die Einkäufe", pluralMacedonian: "купувања" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "das Angebot", macedonian: "понуда", pluralGerman: "die Angebote", pluralMacedonian: "понуди" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Rabatt", macedonian: "попуст", pluralGerman: "die Rabatte", pluralMacedonian: "попусти" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Kassenbon", macedonian: "касов талон", pluralGerman: "die Kassenbons", pluralMacedonian: "касови талони" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Einkaufswagen", macedonian: "количка", pluralGerman: "die Einkaufswagen", pluralMacedonian: "колички" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Markt", macedonian: "пазар", pluralGerman: "die Märkte", pluralMacedonian: "пазари" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Händler", macedonian: "трговец", pluralGerman: "die Händler", pluralMacedonian: "трговци" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "die Rechnung", macedonian: "сметка", pluralGerman: "die Rechnungen", pluralMacedonian: "сметки" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Lieferschein", macedonian: "доставна белешка", pluralGerman: "die Lieferscheine", pluralMacedonian: "доставни белешки" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "die Dienstleistung", macedonian: "услуга", pluralGerman: "die Dienstleistungen", pluralMacedonian: "услуги" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "die Beratung", macedonian: "консултација", pluralGerman: "die Beratungen", pluralMacedonian: "консултации" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "das Produkt", macedonian: "продукт", pluralGerman: "die Produkte", pluralMacedonian: "продукти" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "die Qualität", macedonian: "квалитет", pluralGerman: "die Qualitäten", pluralMacedonian: "квалитети" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Gutschein", macedonian: "ваучер", pluralGerman: "die Gutscheine", pluralMacedonian: "ваучери" },
+  { level: 6, category: "Einkaufen & Dienstleistungen", type: "noun", german: "der Lieferservice", macedonian: "достава", pluralGerman: "die Lieferservices", pluralMacedonian: "достави" },
+
+  // Level 7: Gesundheit & Körper (Health & Body)
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Arzt", macedonian: "лекар", pluralGerman: "die Ärzte", pluralMacedonian: "лекари" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Gesundheit", macedonian: "здравје" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Krankheit", macedonian: "болест", pluralGerman: "die Krankheiten", pluralMacedonian: "болести" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "das Medikament", macedonian: "лек", pluralGerman: "die Medikamente", pluralMacedonian: "лекови" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Behandlung", macedonian: "третман", pluralGerman: "die Behandlungen", pluralMacedonian: "третмани" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Schmerz", macedonian: "болка", pluralGerman: "die Schmerzen", pluralMacedonian: "болки" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "das Fieber", macedonian: "треска" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Körper", macedonian: "тело", pluralGerman: "die Körper", pluralMacedonian: "тела" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Temperatur", macedonian: "температура", pluralGerman: "die Temperaturen", pluralMacedonian: "температури" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Notfall", macedonian: "итен случај", pluralGerman: "die Notfälle", pluralMacedonian: "итни случаи" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Patient", macedonian: "пациент", pluralGerman: "die Patienten", pluralMacedonian: "пациенти" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Operation", macedonian: "операција", pluralGerman: "die Operationen", pluralMacedonian: "операции" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Untersuchung", macedonian: "преглед", pluralGerman: "die Untersuchungen", pluralMacedonian: "прегледи" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Impfstoff", macedonian: "вакцина", pluralGerman: "die Impfstoffe", pluralMacedonian: "вакцини" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Therapie", macedonian: "терапија", pluralGerman: "die Therapien", pluralMacedonian: "терапии" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "das Rezept", macedonian: "рецепт", pluralGerman: "die Rezepte", pluralMacedonian: "рецепти" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Verband", macedonian: "завивка", pluralGerman: "die Verbände", pluralMacedonian: "завивки" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "die Apotheke", macedonian: "аптека", pluralGerman: "die Apotheken", pluralMacedonian: "аптеки" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "der Gesundheitszustand", macedonian: "здравствена состојба", pluralGerman: "die Gesundheitszustände", pluralMacedonian: "здравствени состојби" },
+  { level: 7, category: "Gesundheit & Körper", type: "noun", german: "das Symptom", macedonian: "симптом", pluralGerman: "die Symptome", pluralMacedonian: "симптоми" },
+
+  // Level 8: Freizeit & Unterhaltung (Leisure & Entertainment)
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Kino", macedonian: "кино", pluralGerman: "die Kinos", pluralMacedonian: "кина" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Theater", macedonian: "театар", pluralGerman: "die Theater", pluralMacedonian: "театри" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Konzert", macedonian: "концерт", pluralGerman: "die Konzerte", pluralMacedonian: "концерти" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Museum", macedonian: "музеј", pluralGerman: "die Museen", pluralMacedonian: "музеји" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "die Ausstellung", macedonian: "изложба", pluralGerman: "die Ausstellungen", pluralMacedonian: "изложби" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Film", macedonian: "филм", pluralGerman: "die Filme", pluralMacedonian: "филмови" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "die Musik", macedonian: "музика" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Tanz", macedonian: "танц", pluralGerman: "die Tänze", pluralMacedonian: "танци" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Sänger", macedonian: "певец", pluralGerman: "die Sänger", pluralMacedonian: "певци" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Lied", macedonian: "песна", pluralGerman: "die Lieder", pluralMacedonian: "песни" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Künstler", macedonian: "уметник", pluralGerman: "die Künstler", pluralMacedonian: "уметници" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "die Literatur", macedonian: "литература" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Buch", macedonian: "книга", pluralGerman: "die Bücher", pluralMacedonian: "книги" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Spiel", macedonian: "игра", pluralGerman: "die Spiele", pluralMacedonian: "игри" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Ball", macedonian: "топка", pluralGerman: "die Bälle", pluralMacedonian: "топки" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Hobby", macedonian: "хоби", pluralGerman: "die Hobbys", pluralMacedonian: "хобии" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Freizeitpark", macedonian: "забавен парк", pluralGerman: "die Freizeitparks", pluralMacedonian: "забавни паркови" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "das Festival", macedonian: "фестивал", pluralGerman: "die Festivals", pluralMacedonian: "фестивали" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Spaziergang", macedonian: "прошеќа", pluralGerman: "die Spaziergänge", pluralMacedonian: "прошеќи" },
+  { level: 8, category: "Freizeit & Unterhaltung", type: "noun", german: "der Urlaub", macedonian: "одмор", pluralGerman: "die Urlaube", pluralMacedonian: "одмори" },
+
+  // Level 9: Familie & Beziehungen (Family & Relationships)
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Familie", macedonian: "фамилија", pluralGerman: "die Familien", pluralMacedonian: "фамилии" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Vater", macedonian: "татко", pluralGerman: "die Väter", pluralMacedonian: "таткови" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Mutter", macedonian: "мајка", pluralGerman: "die Mütter", pluralMacedonian: "мајки" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Bruder", macedonian: "брат", pluralGerman: "die Brüder", pluralMacedonian: "браќа" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Schwester", macedonian: "сестра", pluralGerman: "die Schwestern", pluralMacedonian: "сестри" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Sohn", macedonian: "син", pluralGerman: "die Söhne", pluralMacedonian: "синови" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Tochter", macedonian: "ќерка", pluralGerman: "die Töchter", pluralMacedonian: "ќерки" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Ehemann", macedonian: "сопруг", pluralGerman: "die Ehemänner", pluralMacedonian: "сопрузи" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Ehefrau", macedonian: "сопруга", pluralGerman: "die Ehefrauen", pluralMacedonian: "сопруги" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Freund", macedonian: "пријател", pluralGerman: "die Freunde", pluralMacedonian: "пријатели" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Freundin", macedonian: "пријателка", pluralGerman: "die Freundinnen", pluralMacedonian: "пријателки" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Bekannte", macedonian: "познат", pluralGerman: "die Bekannten", pluralMacedonian: "познати" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Verwandte", macedonian: "роден родственик", pluralGerman: "die Verwandten", pluralMacedonian: "родни" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Hochzeit", macedonian: "свадба", pluralGerman: "die Hochzeiten", pluralMacedonian: "свадби" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Scheidung", macedonian: "развод", pluralGerman: "die Scheidungen", pluralMacedonian: "разводи" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "das Elternhaus", macedonian: "роден дом", pluralGerman: "die Elternhäuser", pluralMacedonian: "родни домови" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "der Partner", macedonian: "партнер", pluralGerman: "die Partner", pluralMacedonian: "партнери" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "die Beziehung", macedonian: "врска", pluralGerman: "die Beziehungen", pluralMacedonian: "врски" },
+  { level: 9, category: "Familie & Beziehungen", type: "noun", german: "das Treffen", macedonian: "средба", pluralGerman: "die Treffen", pluralMacedonian: "средби" },
+
+  // Level 10: Zahlen, Zeit & Wetter (Numbers, Time & Weather)
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Zahl", macedonian: "број", pluralGerman: "die Zahlen", pluralMacedonian: "броеви" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Zeit", macedonian: "време" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Tag", macedonian: "ден", pluralGerman: "die Tage", pluralMacedonian: "дени" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Woche", macedonian: "недела", pluralGerman: "die Wochen", pluralMacedonian: "недели" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Monat", macedonian: "месец", pluralGerman: "die Monate", pluralMacedonian: "месеци" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "das Jahr", macedonian: "година", pluralGerman: "die Jahre", pluralMacedonian: "години" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Stunde", macedonian: "час", pluralGerman: "die Stunden", pluralMacedonian: "часови" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Minute", macedonian: "минута", pluralGerman: "die Minuten", pluralMacedonian: "минути" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Morgen", macedonian: "утро", pluralGerman: "die Morgen", pluralMacedonian: "утра" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Abend", macedonian: "вечер", pluralGerman: "die Abende", pluralMacedonian: "вечери" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Regen", macedonian: "дожд", pluralGerman: "der Regen", pluralMacedonian: "дождови" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Schnee", macedonian: "снег", pluralGerman: "die Schneeflocken", pluralMacedonian: "снежни кровови" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Wind", macedonian: "ветер", pluralGerman: "die Winde", pluralMacedonian: "ветрови" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "die Sonne", macedonian: "сонце", pluralGerman: "die Sonnen", pluralMacedonian: "сонци" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Himmel", macedonian: "небо", pluralGerman: "die Himmel", pluralMacedonian: "неба" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Wetterbericht", macedonian: "временска прогноза", pluralGerman: "die Wetterberichte", pluralMacedonian: "временски прогнози" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Sturm", macedonian: "бурја", pluralGerman: "die Stürme", pluralMacedonian: "бури" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "das Gewitter", macedonian: "бура", pluralGerman: "die Gewitter", pluralMacedonian: "бури" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Nebel", macedonian: "магла", pluralGerman: "die Nebel", pluralMacedonian: "магли" },
+  { level: 10, category: "Zahlen, Zeit & Wetter", type: "noun", german: "der Frost", macedonian: "замрзнување", pluralGerman: "die Fröste", pluralMacedonian: "замрзнувања" }
+];
+
+    /**************** Global State Variables ****************/
+    let currentMode = "M2G";  // Fixed: Македонски → Германски
+    let currentLevel = 1;
+    let levelWords = [];
+    let quizWords = [];
+    let currentWord = null;
+    let typingIndex = 0;
+    const masteryThreshold = 4;  // 4 точни одговора за да се освоен збор
+    let quizActionState = "check";
+    let typingActionState = "check";
+    // New variable to store whether the current prompt is plural
+    let currentIsPlural = false;
+
+    /**************** Helper Functions ****************/
+    // Normalize German text in two ways: one by removing diacritics and one by replacing umlauts
+    function normalizeGerman(text) {
+      text = text.toLowerCase().trim();
+      const withoutDiacritics = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const withReplacements = text.replace(/ä/g, "ae")
+                                   .replace(/ö/g, "oe")
+                                   .replace(/ü/g, "ue")
+                                   .replace(/ß/g, "ss")
+                                   .toLowerCase().trim();
+      return { withoutDiacritics, withReplacements };
+    }
+    function answersMatch(a, b) {
+      const normA = normalizeGerman(a);
+      const normB = normalizeGerman(b);
+      return (normA.withoutDiacritics === normB.withoutDiacritics) || (normA.withReplacements === normB.withReplacements);
+    }
+    // Случајно избирање на македонска форма (единствен или множествен)
+    function getRandomMacedonian(wordObj) {
+      if (wordObj.type === "noun" && wordObj.pluralMacedonian && Math.random() < 0.5) {
+        return { text: wordObj.pluralMacedonian, isPlural: true };
+      }
+      return { text: wordObj.macedonian, isPlural: false };
+    }
+    // За точниот германски одговор: користи множина ако е потребно
+    function getCorrectGerman(wordObj, isPlural) {
+      if (wordObj.type === "noun" && isPlural && wordObj.pluralGerman) {
+        return wordObj.pluralGerman;
+      }
+      return wordObj.german;
+    }
+    // Генерирање на 4 опции за тековниот збор
+    function generateOptions(wordObj, isPromptPlural) {
+      let options = [];
+      const correctOption = getCorrectGerman(wordObj, isPromptPlural);
+      options.push(correctOption);
+      // Ако зборот е именица и во единствен број (M2G), додади алтернативни артикли
+      if (wordObj.type === "noun" && !isPromptPlural) {
+        const parts = correctOption.split(" ");
+        if (parts.length > 1) {
+          const articles = ["der", "die", "das"];
+          articles.forEach(art => {
+            if (art !== parts[0].toLowerCase()) {
+              options.push(art + " " + parts.slice(1).join(" "));
+            }
+          });
+        }
+      }
+      // Додади distractor опции од други зборови од нивото
+      const distractorObjs = levelWords.filter(w => w !== wordObj);
+      shuffleArray(distractorObjs);
+      for (let distractor of distractorObjs) {
+        if (options.length >= 4) break;
+        let opt;
+        if (distractor.type === "noun") {
+          opt = (Math.random() < 0.5 && distractor.pluralGerman) ? distractor.pluralGerman : distractor.german;
+        } else {
+          opt = distractor.german;
+        }
+        if (!options.some(o => answersMatch(o, opt))) {
+          options.push(opt);
+        }
+      }
+      while (options.length < 4) { options.push("Нема податоци"); }
+      return shuffleArray(options);
+    }
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    function updateQuizProgress() {
+      const total = levelWords.length;
+      const mastered = levelWords.filter(w => w.correctCount >= masteryThreshold).length;
+      document.getElementById("quiz-progress").textContent = `Вкупен прогрес: ${mastered} од ${total}`;
+      if (currentWord) {
+        document.getElementById("word-progress").textContent = `Останато: ${masteryThreshold - currentWord.correctCount} од ${masteryThreshold}`;
+      }
+    }
+
+    /**************** Screen Management ****************/
+    function showScreen(screenId) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+      document.getElementById(screenId).classList.add("active");
+    }
+    function previewLevel() {
+      currentLevel = parseInt(document.getElementById("level-select").value);
+      levelWords = vocabulary.filter(word => word.level === currentLevel);
+      levelWords.forEach(word => word.correctCount = 0);
+      let html = "<table><tr><th>Германски</th><th>Македонски</th></tr>";
+      levelWords.forEach(word => {
+        html += `<tr><td>${word.german}</td><td>${word.macedonian}</td></tr>`;
+      });
+      html += "</table>";
+      document.getElementById("level-words-list").innerHTML = html;
+      showScreen("level-preview");
+    }
+    function startQuiz() {
+      quizWords = levelWords.filter(word => word.correctCount < masteryThreshold);
+      quizActionState = "check";
+      document.getElementById("quiz-action-btn").textContent = "Провери";
+      loadNextQuizQuestion();
+      showScreen("quiz-screen");
+    }
+    function loadNextQuizQuestion() {
+      quizWords = levelWords.filter(word => word.correctCount < masteryThreshold);
+      if (quizWords.length === 0) {
+        typingIndex = 0;
+        typingActionState = "check";
+        document.getElementById("typing-action-btn").textContent = "Провери";
+        loadNextTypingQuestion();
+        showScreen("typing-screen");
+        return;
+      }
+      currentWord = quizWords[Math.floor(Math.random() * quizWords.length)];
+      updateQuizProgress();
+      const promptObj = getRandomMacedonian(currentWord);
+      currentIsPlural = promptObj.isPlural;
+      document.getElementById("question-prompt").textContent = promptObj.text;
+      const options = generateOptions(currentWord, promptObj.isPlural);
+      const optionsContainer = document.getElementById("options-container");
+      optionsContainer.innerHTML = "";
+      options.forEach(option => {
+        const div = document.createElement("div");
+        div.className = "option-item";
+        if (currentWord.type === "noun" && !promptObj.isPlural) {
+          const article = option.split(" ")[0].toLowerCase();
+          if (article === "der") div.classList.add("masculine");
+          else if (article === "die") div.classList.add("feminine");
+          else if (article === "das") div.classList.add("neuter");
+        }
+        div.innerHTML = `<label>
+            <input type="radio" name="option" value="${option}">
+            ${option}
+          </label>`;
+        div.addEventListener("click", function() { div.querySelector('input').checked = true; });
+        optionsContainer.appendChild(div);
+      });
+      document.getElementById("quiz-feedback").textContent = "";
+      quizActionState = "check";
+      document.getElementById("quiz-action-btn").textContent = "Провери";
+      updateQuizProgress();
+    }
+    function quizAction() {
+      if (quizActionState === "check") {
+        const selected = document.querySelector('input[name="option"]:checked');
+        if (!selected) { alert("Ве молиме изберете одговор или користете гласов внес."); return; }
+        const userAnswer = selected.value;
+        // Determine plural from current prompt (we already store currentIsPlural)
+        const correctAnswer = getCorrectGerman(currentWord, currentIsPlural);
+        if (answersMatch(userAnswer, correctAnswer)) {
+          document.getElementById("quiz-feedback").textContent = "Точно!";
+          document.getElementById("quiz-feedback").style.color = "green";
+          currentWord.correctCount++;
+        } else {
+          document.getElementById("quiz-feedback").textContent = `Неточно! Точен одговор: ${correctAnswer}`;
+          document.getElementById("quiz-feedback").style.color = "red";
+          currentWord.correctCount = 0;
+        }
+        speakGerman();
+        quizActionState = "next";
+        document.getElementById("quiz-action-btn").textContent = "Следно";
+        updateQuizProgress();
+      } else if (quizActionState === "next") {
+        loadNextQuizQuestion();
+      }
+    }
+    function loadNextTypingQuestion() {
+      if (typingIndex >= levelWords.length) {
+        document.getElementById("typing-feedback").textContent = "Нивото заврши! Браво!";
+        document.getElementById("finish-level-btn").classList.remove("hidden");
+        document.getElementById("typing-action-btn").disabled = true;
+        document.getElementById("typing-question").textContent = "";
+        return;
+      }
+      currentWord = levelWords[typingIndex];
+      const promptObj = getRandomMacedonian(currentWord);
+      currentIsPlural = promptObj.isPlural;
+      document.getElementById("typing-question").textContent = promptObj.text;
+      document.getElementById("typing-input").value = "";
+      document.getElementById("typing-feedback").textContent = "";
+      typingActionState = "check";
+      document.getElementById("typing-action-btn").textContent = "Провери";
+    }
+    function typingAction() {
+      if (typingActionState === "check") {
+        const userAns = document.getElementById("typing-input").value;
+        const correctAns = getCorrectGerman(currentWord, currentIsPlural);
+        if (answersMatch(userAns, correctAns)) {
+          document.getElementById("typing-feedback").textContent = "Точно!";
+          document.getElementById("typing-feedback").style.color = "green";
+        } else {
+          document.getElementById("typing-feedback").textContent = `Неточно! Точен одговор: ${correctAns}`;
+          document.getElementById("typing-feedback").style.color = "red";
+        }
+        speakGerman();
+        typingActionState = "next";
+        document.getElementById("typing-action-btn").textContent = "Следно";
+      } else if (typingActionState === "next") {
+        typingIndex++;
+        loadNextTypingQuestion();
+      }
+    }
+    /**************** Automatic German Speech ****************/
+    function speakGerman() {
+      if (!currentWord) return;
+      const textToSpeak = getCorrectGerman(currentWord, currentIsPlural);
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = "de-DE";
+      window.speechSynthesis.speak(utterance);
+    }
+    /**************** Audio & Voice Input ****************/
+    function playAudio() { speakGerman(); }
+    let recognition;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const options = document.querySelectorAll('input[name="option"]');
+        let found = false;
+        options.forEach(option => {
+          if (answersMatch(transcript, option.value)) {
+            option.checked = true;
+            found = true;
+          }
+        });
+        if (!found) { alert("Не се пронајдени совпаѓања. Обидете се повторно."); }
+      };
+      recognition.onerror = function(event) {
+        console.error("Грешка во гласовото препознавање:", event.error);
+      };
+    } else {
+      console.warn("Гласовото препознавање не е поддржано.");
+      document.getElementById("record-btn").disabled = true;
+    }
+    function startVoiceInput() {
+      if (recognition) { recognition.lang = "de-DE"; recognition.start(); }
+    }
+    /**************** Navigation Functions ****************/
+    function exitToMenu() { showScreen("menu-screen"); }
+    function finishLevel() { alert("Нивото заврши! Добра работа!"); showScreen("menu-screen"); }
+    /**************** Keyboard Shortcuts ****************/
+    document.addEventListener("keydown", function(e) {
+      if (document.activeElement.tagName.toLowerCase() === "input") return;
+      switch(e.key) {
+        case "Enter":
+          if (document.querySelector("#quiz-screen.active")) { quizAction(); }
+          else if (document.querySelector("#typing-screen.active")) { typingAction(); }
+          break;
+        case "ArrowRight":
+          if (document.querySelector("#quiz-screen.active")) { quizAction(); }
+          else if (document.querySelector("#typing-screen.active")) { typingAction(); }
+          break;
+        case "a": case "A": playAudio(); break;
+        case "r": case "R": startVoiceInput(); break;
+        case "Escape": exitToMenu(); break;
+      }
+    });
+    /**************** Event Listeners ****************/
+    document.getElementById("preview-level-btn").addEventListener("click", previewLevel);
+    document.getElementById("back-to-menu-btn").addEventListener("click", function(){ showScreen("menu-screen"); });
+    document.getElementById("start-level-btn").addEventListener("click", startQuiz);
+    document.getElementById("quiz-action-btn").addEventListener("click", quizAction);
+    document.getElementById("exit-quiz-btn").addEventListener("click", exitToMenu);
+    document.getElementById("audio-btn").addEventListener("click", playAudio);
+    document.getElementById("record-btn").addEventListener("click", startVoiceInput);
+    document.getElementById("typing-action-btn").addEventListener("click", typingAction);
+    document.getElementById("finish-level-btn").addEventListener("click", finishLevel);
+  </script>
 </body>
 </html>
